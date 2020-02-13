@@ -2,6 +2,7 @@ package com.npu.gmall.client1.controller;
 
 import com.npu.gmall.client1.config.SsoConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -19,6 +20,9 @@ public class HelloController {
     @Autowired
     SsoConfig ssoConfig;
 
+    @Autowired
+    StringRedisTemplate stringRedisTemplate;
+
     /**
      * sso服务器登录成了会在url后面给我们带一个cookie
      * @param model
@@ -33,7 +37,7 @@ public class HelloController {
                         HttpServletResponse response,
                         @RequestParam(value = "sso_user",required =false) String ssoUserParam){
         if(!StringUtils.isEmpty(ssoUserParam)){
-            //没有调用认证服务器登录后跳转回来,说明远程登录了
+            //登录服务器会在url上携带了要保存的cookie的信息，通知浏览器进行保存
             Cookie cookie = new Cookie("sso_user", ssoUserParam);
             response.addCookie(cookie);
             return "index";
@@ -46,7 +50,8 @@ public class HelloController {
             return "redirect:"+ssoConfig.getUrl()+ssoConfig.getLoginPath()+"?redirect_url="+requestURL.toString();
         }else{
             //登录了,redis.get(ssoUserCookie)获取到用户信息
-            model.addAttribute("loginUser","张三");
+            String userInfo = stringRedisTemplate.opsForValue().get(ssoUserCookie);
+            model.addAttribute("loginUser",userInfo);
             return "index";
         }
     }
